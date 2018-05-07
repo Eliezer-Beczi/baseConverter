@@ -1,34 +1,34 @@
-#include <map>
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
 
 using namespace std;
 
-const unsigned int precision = 24;
+const unsigned precision = 24;
 
-map<char, unsigned int> szamJegyek_1;
-map<unsigned int, char> szamJegyek_2;
+unordered_map<char, unsigned> char2digit;
+unordered_map<unsigned, char> digit2char;
 
 void init() {
 	for(char i = '0'; i <= '9'; ++i) {
-		szamJegyek_1[i] = i - '0';
+		char2digit[i] = i - '0';
 	}
 
 	for(char i = 'A'; i <= 'Z'; ++i) {
-		szamJegyek_1[i] = i - '7';
+		char2digit[i] = i - '7';
 	}
 
-	for(unsigned int i = 0; i <= 9; ++i) {
-		szamJegyek_2[i] = i + '0';
+	for(unsigned i = 0; i <= 9; ++i) {
+		digit2char[i] = i + '0';
 	}
 
-	for(unsigned int i = 10; i < 36; ++i) {
-		szamJegyek_2[i] = i + '7';
+	for(unsigned i = 10; i < 36; ++i) {
+		digit2char[i] = i + '7';
 	}
 }
 
-bool check(unsigned int forrasSzamRendszer, unsigned int celSzamRendszer, string myNum, ofstream &outputFile) {
+bool check(unsigned forrasSzamRendszer, unsigned celSzamRendszer, string myNum, ofstream &outputFile) {
 	if(forrasSzamRendszer <= 1) {
 		cout << "Hiba: helytelen forrasSzamRendszer" << endl;
 		outputFile << "Hiba: helytelen forrasSzamRendszer" << endl;
@@ -43,12 +43,12 @@ bool check(unsigned int forrasSzamRendszer, unsigned int celSzamRendszer, string
 		return false;
 	}
 
-	for(unsigned int i = 0; i < myNum.size(); ++i) {
+	for(unsigned i = 0; i < myNum.size(); ++i) {
 		if(myNum[i] == ',') {
 			continue;
 		}
 
-		if(szamJegyek_1[myNum[i]] >= forrasSzamRendszer) {
+		if(char2digit[myNum[i]] >= forrasSzamRendszer) {
 			cout << "Hiba: helytelen szam" << endl;
 			outputFile << "Hiba: helytelen szam" << endl;
 
@@ -59,66 +59,56 @@ bool check(unsigned int forrasSzamRendszer, unsigned int celSzamRendszer, string
 	return true;
 }
 
-void invertString(string &str) {
-	unsigned int hossz = str.size();
-	unsigned int hosszFele = hossz / 2;
-
-	for(int i = 0; i < hosszFele; ++i) {
-		swap(str[i], str[hossz - 1 - i]);
-	}
-}
-
-void getDecimalNumber(long double &decNum, unsigned int forrasSzamRendszer, string myNum) {
+void getDecimalNumber(long double &decNum, unsigned forrasSzamRendszer, string myNum) {
 	decNum = 0.0;
-	unsigned int i = 0;
+	unsigned i = 0;
+	unsigned long long hatvany = 1;
 
 	while(myNum[i] != ',' && myNum[i] != '\0') {
 		++i;
 	}
 
-	unsigned long long hatvany = 1;
-
 	for(int k = i - 1; k >= 0; --k) {
-		decNum += szamJegyek_1[myNum[k]] * hatvany;
+		decNum += char2digit[myNum[k]] * hatvany;
 		hatvany *= forrasSzamRendszer;
 	}
 
 	++i;
-	long double tort = 1 / static_cast<long double>(forrasSzamRendszer);
+	long double tort = static_cast<long double>(1) / forrasSzamRendszer;
 
 	while(myNum[i] != '\0') {
-		decNum += tort * szamJegyek_1[myNum[i]];
-		tort *= 1 / static_cast<long double>(forrasSzamRendszer);
+		decNum += tort * char2digit[myNum[i]];
+		tort *= static_cast<long double>(1) / forrasSzamRendszer;
 		++i;
 	}
 }
 
-string convertIntegerPart(unsigned long long egeszResz, unsigned int celSzamRendszer) {
+string convertIntegerPart(unsigned long long egeszResz, unsigned celSzamRendszer) {
 	string temp = "";
 
 	while(egeszResz != 0) {
-		temp += szamJegyek_2[egeszResz % celSzamRendszer];
+		temp += digit2char[egeszResz % celSzamRendszer];
 		egeszResz /= celSzamRendszer;
 	}
 
 	if(temp != "") {
-		invertString(temp);
+		reverse(temp.begin(), temp.end());
 	}
-	else{
+	else {
 		temp = "0";
 	}
 
 	return temp;
 }
 
-string convertFractionalPart(long double tortResz, unsigned int celSzamRendszer) {
+string convertFractionalPart(long double tortResz, unsigned celSzamRendszer) {
 	string temp = ",";
-	
-	while(tortResz != 0.0 && temp.size() <= precision) {
+
+	while(tortResz != static_cast<long double>(0) && temp.size() <= precision) {
 		tortResz *= celSzamRendszer;
 
-		unsigned int egeszResz = tortResz;
-		temp += szamJegyek_2[egeszResz];
+		unsigned egeszResz = tortResz;
+		temp += digit2char[egeszResz];
 
 		tortResz -= egeszResz;
 	}
@@ -130,12 +120,12 @@ string convertFractionalPart(long double tortResz, unsigned int celSzamRendszer)
 	return temp;
 }
 
-void kiIr(unsigned int forrasSzamRendszer, unsigned int celSzamRendszer, string myNum, long double decNum, ofstream &outputFile) {
+void kiIr(unsigned forrasSzamRendszer, unsigned celSzamRendszer, string myNum, long double decNum, ofstream &outputFile) {
 	if(celSzamRendszer == 10) {
 		cout << forrasSzamRendszer << ' ' << myNum << ' ' << celSzamRendszer << ' ' << decNum << endl;
 		outputFile << forrasSzamRendszer << ' ' << myNum << ' ' << celSzamRendszer << ' ' << decNum << endl;
 	}
-	else{
+	else {
 		unsigned long long egeszResz = decNum;
 		long double tortResz = decNum - egeszResz;
 
@@ -153,8 +143,8 @@ void beOlvas() {
 	ofstream outputFile;
 	outputFile.open("output.dat");
 
-	unsigned int forrasSzamRendszer;
-	unsigned int celSzamRendszer;
+	unsigned forrasSzamRendszer;
+	unsigned celSzamRendszer;
 
 	string myNum;
 
